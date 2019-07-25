@@ -12,4 +12,4 @@ s3 = session.resource('s3')
 
 # need location constraint for regions othe than us-east-1
 new_bucket = s3.create_bucket(Bucket='automating-aws-boto3-' + str(
-    fake.random_int()), CreateBucketConfiguration={'LocationConstraint': 'us-east-2'})
+    fake.random_int()), CreateBucketConfiguration={'LocationConstraint': session.region_name})
