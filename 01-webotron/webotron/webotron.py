@@ -1,7 +1,9 @@
 import boto3
 import click
+import mimetypes
 
 from botocore.errorfactory import ClientError
+from pathlib import Path
 
 session = boto3.Session(profile_name='pythonAutomation')
 
@@ -49,7 +51,7 @@ def setup_bucket(bucket):
             raise e
 
     print(s3_bucket) 
-       
+
     policy = """{
         "Version": "2008-10-17",
         "Statement": [
@@ -78,6 +80,34 @@ def setup_bucket(bucket):
             'Suffix': 'index.html'
         }}
     )
+    
+    return
+
+def upload_file(s3_bucket, path, key):
+    content_type = mimetypes.guess_type(key)[0] or 'text/plain'
+
+    s3_bucket.upload_file(
+        path,
+        key,
+        ExtraArgs={
+            'ContentType': content_type   
+        })
+
+@cli.command('sync')
+@click.argument('pathname', type=click.Path(exists=True))
+@click.argument('bucket')
+def sync(pathname, bucket):
+    "Sync contents to PATHNAME to Bucket"
+    s3_bucket = s3.Bucket(bucket)
+    root = Path(pathname).expanduser().resolve()
+
+    def handle_directory(target):
+        for p in target.iterdir():
+            if p.is_dir(): handle_directory(p)
+            if p.is_file(): upload_file(s3_bucket, str(p), str(p.relative_to(root)))
+
+    handle_directory(Path(root))
+
 
 
 if __name__ == '__main__':
